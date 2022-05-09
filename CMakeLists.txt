@@ -31,7 +31,7 @@ cmake_minimum_required(VERSION 3.3)
 
 ###### PROJECT NAME AND VERSION ######
 set(EXEC_NAME audio)
-set(PROJECT_VERSION 1.12)
+set(PROJECT_VERSION 1.2)
 project(${EXEC_NAME} VERSION ${PROJECT_VERSION})
 
 ###### LIBRARY NAME ######
@@ -62,7 +62,7 @@ else ()
 
   ###### Special libraries ######
   if(1)
-    set(EXTRA_LIBS "pthread" "util")
+    set(EXTRA_LIBS "pthread" "util" "asound")
   endif()
 
   ###### Boost libraries ######
