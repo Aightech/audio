@@ -62,8 +62,8 @@ main(int argc, char *argv[])
     {
 
         int nb_ch = 1;
-	int s_chunk = 64;
-        lsl::stream_info info_sample("audio", "sample", nb_ch, 0, lsl::cf_int16);
+	int s_chunk = 1;
+        lsl::stream_info info_sample("audio", "sample", nb_ch, actualRate, lsl::cf_int16);
         lsl::stream_outlet outlet_sample(info_sample);
         std::cout << "[INFOS] Now sending data... " << std::endl;
 
