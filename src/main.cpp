@@ -1,93 +1,51 @@
-#include <alsa/asoundlib.h>
-#include <iostream>
-#include <lsl_cpp.h>
+#include <audio.hpp>
+#include <lsl_c.h>
+#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-snd_pcm_t *
-init(snd_pcm_stream_t mode,  unsigned int actualRate)
+double timestamp[1024];
+
+/* This routine will be called by the PortAudio engine when audio is needed.
+** It may called at interrupt level on some machines so don't do anything
+** that could mess up the system like calling malloc() or free().
+*/
+static int
+paCallback(const void *inputBuffer,
+           void *outputBuffer,
+           unsigned long framesPerBuffer,
+           const PaStreamCallbackTimeInfo *timeInfo,
+           PaStreamCallbackFlags statusFlags,
+           void *userData)
 {
+    lsl_inlet* inlet = (lsl_inlet*)userData;
+    float *out = (float *)outputBuffer;
+    //pull chunk of data from lsl stream directly into output buffer
     int err;
-    snd_pcm_t *playback_handle;
-    snd_pcm_hw_params_t *hw_params;
-   
-
-    if((err = snd_pcm_open(&playback_handle, "default", mode, 0)) < 0)
-        throw std::string("cannot open audio device ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_malloc(&hw_params)) < 0)
-        throw std::string("cannot allocate hw param. ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_any(playback_handle, hw_params)) < 0)
-        throw std::string("cannot initialize hw param. ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_set_access(playback_handle, hw_params,
-                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-        throw std::string("cannot set access type ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_set_format(playback_handle, hw_params,
-                                           SND_PCM_FORMAT_S16_LE)) < 0)
-        throw std::string("cannot set sample format ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params,
-                                              &actualRate, 0)) < 0)
-        throw std::string("cannot set sample rate ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, 2)) <
-       0)
-        throw std::string("cannot set channel count ") + snd_strerror(err);
-
-    if((err = snd_pcm_hw_params(playback_handle, hw_params)) < 0)
-        throw std::string("cannot set parameters ") + snd_strerror(err);
-
-    snd_pcm_hw_params_free(hw_params);
-
-    if((err = snd_pcm_prepare(playback_handle)) < 0)
-        throw std::string("cannot prepare interface ") + snd_strerror(err);
-
-    return playback_handle;
-};
+    unsigned long n = lsl_pull_chunk_f(*inlet, out, NULL, framesPerBuffer, 0, LSL_FOREVER, &err);
+    (void)timeInfo;
+    (void)statusFlags;
+    return 0;
+}
 
 int
 main(int argc, char *argv[])
 {
-    int err;
-    short buf[256];
-    unsigned int actualRate = 44100;
-    unsigned int actualPeriod = 1000000/actualRate;
-    snd_pcm_t *capture_handle = init(SND_PCM_STREAM_CAPTURE, actualRate);
-    
+    //check if Kistler lsl stream is available
+    lsl_streaminfo info;
+    lsl_resolve_byprop(&info, 1, "name", "Kistler", 0, LSL_FOREVER);
+    lsl_inlet inlet = lsl_create_inlet(info, 2, 1024, 1);
 
-    try
-    {
+    //create audio stream
+    AudioStream audio;
+    audio.config(0, 1, 44100, 1024, paFloat32, paCallback, &inlet);
+    audio.start();
 
-        int nb_ch = 1;
-	int s_chunk = 1;
-        lsl::stream_info info_sample("audio", "sample", nb_ch, actualRate, lsl::cf_int16);
-        lsl::stream_outlet outlet_sample(info_sample);
-        std::cout << "[INFOS] Now sending data... " << std::endl;
+    //wait for user input
+    std::cout << "Press enter to stop the audio stream" << std::endl;
+    std::cin.get();
 
-        for(int t=0;;t++)
-        {
-            if((err = snd_pcm_readi(capture_handle, buf, s_chunk)) != s_chunk)
-                throw std::string("read from audio  failed ") +
-                    snd_strerror(err);
-	    
+    //stop audio stream
+    audio.stop();
 
-            for(int j = 0; j < s_chunk; j++)
-	      {
-                outlet_sample.push_numeric_raw((&buf[2*j]));
-		//usleep(actualPeriod);
-	      }
-	    //std::cout << t << std::endl;
-
-        }
-    }
-    catch(std::exception &e)
-    {
-        std::cerr << "[ERROR] Got an exception: " << e.what() << std::endl;
-    }
-
-    snd_pcm_close(capture_handle);
     return 0;
 }

@@ -8,6 +8,8 @@
 !/include/*
 !/lib
 !/lib/*
+!/tool_lib
+!/tool_lib/*
 !/config
 !/config/*
 !/docs
@@ -20,8 +22,15 @@
 !README.org
 !CMakeLists.txt
 !CMakeFunctions.txt
+!CMakeConfig.txt
 !Doxyfile
 !todo.org
 !/.dir-locals.el
-
+!/README.md
 !/.clang-format
+!/.github
+!/.github/*
+!/LICENSE
+!/CONTRIBUTING.md
+!/script
+!/script/*
