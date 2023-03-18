@@ -2,6 +2,15 @@
 
 Simple wrapper to use audio recording/playing functions from alsa/sounds library.
 
+# PortAudio lib
+To build the project you need to have portaudio lib on you computer.
+follow the portaudio install documentation.
+but here a sum up:
+- clone repository
+- ./configure && make
+- sudo make install
+- mkdir build && cd build && cmake ..
+- sudo make install
 # Building source code
 
 To build the project run:
